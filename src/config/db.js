@@ -5,12 +5,16 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 // import { PrismaClient } from "./generated/prisma/client.js";
 
-if (!process.env.DATABASE_URL) {
+const env= process.env.NODE_ENV
+
+const url= env==='development' ? process.env.DATABASE_URL : process.env.DATABASE_URL_ONLINE
+
+if (!url) {
   throw new Error("DATABASE_URL is missing from the .env file");
 }
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: url,
 });
 
 // const prisma = new PrismaClient({
@@ -19,7 +23,7 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({
   adapter,
-  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+  log: env === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
 })
 
 export default prisma;
