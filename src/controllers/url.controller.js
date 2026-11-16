@@ -95,6 +95,7 @@ export const createUrl = async (req, res) => {
 // GET /api/urls
 export const getUrls = async (req, res) => {
   try {
+
     const urls = await prisma.url.findMany({
       where: {
         userId: req.user.id,
@@ -111,11 +112,21 @@ export const getUrls = async (req, res) => {
         expiresAt: true,
       },
     });
+    if(urls.expiresAt && new Date() > urls.expiresAt){
+      return res.status(410).json({
+        message: "This short URL has expired",
+      });
+    }
+
+
+    console.log('this is the urls: ', urls[0].shortCode)
 
     const formattedUrls = urls.map((url) => ({
       ...url,
       shortUrl: `${process.env.APP_URL}/${url.shortCode}`,
     }));
+
+    // console.log('this is the formatted urls: ', formattedUrls)
 
     return res.status(200).json({
       urls: formattedUrls,
@@ -205,10 +216,17 @@ export const deleteUrl = async (req, res) => {
 // GET /:shortCode
 export const redirectUrl = async (req, res) => {
   try {
-    const { shortCode } = req.params;
+     console.log('this is the request params: ', req.params)
+    const { id } = req.params;
+
+    console.log('this is the id: ', id)
+
+    const shortCode = id;
 
     // 1. Check Redis
     const cachedUrl = await redis.get(`url:${shortCode}`);
+
+    console.log('this is the cached url: ', cachedUrl)
 
     if (cachedUrl) {
       console.log("Redis cache HIT");
@@ -225,7 +243,13 @@ export const redirectUrl = async (req, res) => {
         },
       });
 
+      res.status(201).json({
+        message: "Redirect successful",
+        url: cachedUrl,
+      });
+
       return res.redirect(cachedUrl);
+       
     }
 
     console.log("Redis cache MISS");
@@ -237,6 +261,7 @@ export const redirectUrl = async (req, res) => {
         shortCode,
       },
     });
+    console.log('this is the url from postgres: ', url)
 
     if (!url) {
       return res.status(404).json({
