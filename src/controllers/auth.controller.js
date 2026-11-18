@@ -43,7 +43,7 @@ const cacheUser = async (user) => {
     email: user.email,
     createdAt: user.createdAt,
   };
-  await redis.setex(`user:${user.id}`, USER_CACHE_TTL, JSON.stringify(safeUser));
+  await redis.setEx(`user:${user.id}`, USER_CACHE_TTL, JSON.stringify(safeUser));
   return safeUser;
 };
 
@@ -165,7 +165,7 @@ export const refresh = async (req, res) => {
     const { accessToken, refreshToken } = generateTokens(decoded.userId);
 
     // Update refresh token in Redis
-    await redis.setex(`refreshToken:${decoded.userId}`, REFRESH_TOKEN_EXPIRY, refreshToken);
+    await redis.setEx(`refreshToken:${decoded.userId}`, REFRESH_TOKEN_EXPIRY, refreshToken);
 
     setAuthCookies(res, accessToken, refreshToken);
 
@@ -199,7 +199,7 @@ export const logout = async (req, res) => {
         if (decoded?.exp) {
           const remainingSeconds = decoded.exp - Math.floor(Date.now() / 1000);
           if (remainingSeconds > 0) {
-            await redis.setex(`blacklist:${accessToken}`, remainingSeconds, "revoked");
+            await redis.setEx(`blacklist:${accessToken}`, remainingSeconds, "revoked");
           }
         }
       } catch (_) {}
